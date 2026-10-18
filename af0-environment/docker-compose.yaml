@@ -1,0 +1,247 @@
+version: '3.2'
+
+networks:
+  af0-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+#  redis-data:
+
+services:
+#  app:
+#    build:
+#      context: ..
+#      dockerfile: Dockerfile
+#    image: ticket-app:local
+#    container_name: ticket-app
+#    restart: unless-stopped
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      SPRING_DATA_REDIS_HOST: ticket-redis
+#      SPRING_DATA_REDIS_PORT: "6379"
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://ticket-postgres:5432/ticket
+#      SPRING_DATASOURCE_USERNAME: postgresql
+#      SPRING_DATASOURCE_PASSWORD: postgresql
+#      JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+#    networks:
+#      - pre-event-network
+#    healthcheck:
+#      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+#      interval: 15s
+#      timeout: 5s
+#      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: af0-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: af0-store
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - af0-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+#  redis:
+#    image: redis:7-alpine
+#    container_name: ticket-redis
+#    restart: unless-stopped
+#    command: ["redis-server", "--appendonly", "yes"]
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - ./data/redis:/data
+#    networks:
+#      - pre-event-network
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+      
+#  kafka:
+#    image: apache/kafka:3.7.0
+#    container_name: ticket-kafka
+#    ports:
+#      - "9094:9094"   # external — Spring Boot (host) connects here
+#    environment:
+#      KAFKA_NODE_ID: 1
+#      KAFKA_PROCESS_ROLES: broker,controller
+#      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ticket-kafka:9092,EXTERNAL://localhost:9094
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+#      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+#      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@ticket-kafka:9093
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+#      KAFKA_NUM_PARTITIONS: 3
+#      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+#      KAFKA_LOG_RETENTION_MS: 604800000
+#    healthcheck:
+#      test: [ "CMD", "/opt/kafka/bin/kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092" ]
+#      interval: 5s
+#      timeout: 10s
+#      retries: 10
+#    networks:
+#      - pre-event-network
+#
+#  kafka-ui:
+#    image: provectuslabs/kafka-ui:latest
+#    container_name: ticket-kafka-ui
+#    ports:
+#      - "8989:8080"   # open http://localhost:8989
+#    depends_on:
+#      kafka:
+#        condition: service_healthy
+#    environment:
+#      KAFKA_CLUSTERS_0_NAME: pre-event
+#      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ticket-kafka:9092
+#      DYNAMIC_CONFIG_ENABLED: "true"
+#    networks:
+#      - pre-event-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pre-event-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./data/prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "9090:9090"
+    networks:
+      - af0-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: pre-event-grafana
+    hostname: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SING_UP=false
+      - GF_SERVER_DOMAIN=localhost
+      #enable logger
+      - GF_LOG_MODE=console file
+      - GF_LOG_FILTERS=alerting.notifier.slack:debug alermanager:debug ngalert:debug
+    volumes:
+      - ./grafana-storage:/var/lib/grafana
+#      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+#      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    networks:
+      - af0-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: pre-event-node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    ports:
+      - "9100:9100"
+    networks:
+      - af0-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: af0-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/ticket?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - af0-network
+    depends_on:
+      - postgres
+
+  elasticsearch:
+    image: elasticsearch:7.17.25
+    container_name: af0-elasticsearch
+    volumes:
+      - ./elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      discovery.type: single-node
+    networks:
+      - af0-network
+
+  logstash:
+    image: logstash:7.17.25
+    container_name: pre-event-logstash
+    volumes:
+      - ./elk/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./elk/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5044:5044"
+      - "5033:5000/tcp"
+      - "5022:5000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - af0-network
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: kibana:7.17.25
+    container_name: af0-kibana
+    volumes:
+      - ./elk/kibana.yml:/usr/share/kibana/config/kibana.yml
+    ports:
+      - "5601:5601"
+    networks:
+      - af0-network
+    depends_on:
+      - elasticsearch
+
+  #  logstash-exporter:
+  #    image: alxrem/prometheus-logstash-exporter
+  #    container_name: af0-logstash-exporter
+  #    command: ["-logstash.host", "logstash"]
+  #    platform: linux/arm64/v8
+  #    environment:
+  #      LOGSTASH_URI: "http://logstash:9600" # Kết nối tới Logstash API
+  #    ports:
+  #      - "9304:9304" # Cổng Logstash Exporter cho Prometheus
+  #    networks:
+  #      - pre-event-network
+  #    depends_on:
+  #      - logstash

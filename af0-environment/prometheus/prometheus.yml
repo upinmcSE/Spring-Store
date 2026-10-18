@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "af0-prometheus"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["localhost:9090"]
+    metrics_path: "/metrics"
+
+  - job_name: "af0-springboot"
+    scrape_interval: 5s
+    static_configs:
+      - targets: [ "host.docker.internal:1122" ]
+    metrics_path: "/actuator/prometheus"
+
+  - job_name: "af0-node-exporter"
+    scrape_interval: 5s
+    static_configs:
+      - targets: [ "host.docker.internal:9100" ]
+
+  - job_name: "af0-postgresql-exporter"
+    scrape_interval: 5s
+    static_configs:
+      - targets: [ "host.docker.internal:9187" ]
+#
+#  - job_name: "af0-redis-exporter"
+#    scrape_interval: 5s
+#    static_configs:
+#      - targets: [ "host.docker.internal:9121" ]
+#    metrics_path: "/metrics"
+
+#  - job_name: "af0-logstash-exporter"
+#    scrape_interval: 5s
+#    static_configs:
+#      - targets: [ "host.docker.internal:9304" ]
+#    metrics_path: "/metrics"

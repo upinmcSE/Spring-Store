@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>La Sơn Coffee Roastery — Cà Phê Đặc Sản Sơn La Từ Một Bác Sĩ Thú Y</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lason: {
+                            brown: '#8D532B',     // Màu nền chuẩn từ Logo Ls'
+                            dark: '#3D2314',      // Nâu Espresso đậm
+                            cream: '#FAF6F0',     // Kem giấy mộc
+                            sand: '#EFE6D8',      // Màu túi Kraft
+                            gold: '#D97706',      // Điểm nhấn Honey
+                            green: '#2D5A27'      // Xanh núi rừng Tây Bắc
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FAF6F0; color: #3D2314; }
+        h1, h2, h3, .font-serif { font-family: 'Playfair Display', serif; }
+        .page-section { display: none; animation: fadeIn 0.35s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        #map { height: 420px; width: 100%; border-radius: 1rem; z-index: 10; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-lason-brown selection:text-white">
+
+<!-- TOP ANNOUNCEMENT BAR: LỊCH XE LƯU ĐỘNG CUỐI TUẦN -->
+<div class="bg-lason-dark text-amber-100 text-xs sm:text-sm py-2.5 px-4 text-center font-medium border-b border-amber-900/40">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-2">
+      <span class="inline-flex items-center gap-1.5 bg-lason-brown text-white px-2.5 py-0.5 rounded-full text-xs font-bold">
+        🚐 LASON TRUCK CUỐI TUẦN NÀY
+      </span>
+        <span>Thứ 7: <strong>Đồi Thông Bản Áng (6h30 - 11h30)</strong> • Chủ Nhật: <strong>Đồi Chè Trái Tim Mộc Châu (6h30 - 11h30)</strong></span>
+        <button onclick="switchPage('gear-map'); setTimeout(focusTruckMap, 250);" class="underline text-amber-300 hover:text-white font-semibold ml-1">
+            Xem tọa độ bản đồ →
+        </button>
+    </div>
+</div>
+
+<!-- HEADER & NAVIGATION -->
+<header class="sticky top-0 z-40 bg-lason-cream/95 backdrop-blur-md border-b border-stone-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <!-- Brand Logo (Vector hóa từ ảnh Logo Ls') -->
+        <button onclick="switchPage('story')" class="flex items-center gap-3.5 text-left group">
+            <div class="w-12 h-12 rounded-xl bg-lason-brown flex items-center justify-center shadow-md group-hover:scale-105 transition overflow-hidden shrink-0">
+                <!-- SVG tái tạo chính xác Logo Ls' trên nền nâu #8D532B -->
+                <svg viewBox="0 0 100 100" class="w-11 h-11">
+                    <rect width="100" height="100" fill="#8D532B"/>
+                    <!-- Chữ L cao thon với nét chân uốn cong -->
+                    <path d="M26 14 C28 14, 31 15, 31 19 L28 60 C32 59, 36 60, 39 62 L38 64 C32 61, 25 61, 19 64 L18 61 C20 60, 22 60, 23 59 L25 18 C25 15, 25 14, 26 14 Z" fill="#FFFFFF"/>
+                    <!-- Chữ S đậm khỏe phía dưới -->
+                    <path d="M62 46 L48 46 C40 46, 35 51, 35 59 C35 67, 40 71, 49 71 L53 71 C55 71, 56 72, 56 74 C56 76, 55 77, 52 77 L36 77 L36 87 L53 87 C62 87, 67 82, 67 73 C67 65, 62 61, 53 61 L49 61 C47 61, 46 60, 46 58 C46 56, 47 55, 50 55 L62 55 Z" fill="#FFFFFF"/>
+                    <!-- Dấu phẩy trên (Apostrophe) -->
+                    <path d="M72 36 L81 36 C83 36, 83 44, 81 49 C79 53, 75 56, 72 56 L71 51 C74 50, 76 48, 76 45 L72 45 Z" fill="#FFFFFF"/>
+                </svg>
+            </div>
+            <div>
+                <span class="block font-serif text-xl sm:text-2xl font-bold tracking-tight text-lason-dark">LASONCOFFEE</span>
+                <span class="block text-xs text-stone-500 font-medium">La Sơn Coffee Roastery • Sơn La</span>
+            </div>
+        </button>
+
+        <!-- Desktop Menu (4 Pages) -->
+        <nav class="hidden md:flex items-center gap-1 lg:gap-2 bg-stone-200/60 p-1.5 rounded-full">
+            <button onclick="switchPage('story')" data-nav="story" class="nav-btn px-4 py-2 rounded-full text-sm font-semibold transition bg-lason-brown text-white shadow-sm">
+                1. Câu Chuyện
+            </button>
+            <button onclick="switchPage('beans')" data-nav="beans" class="nav-btn px-4 py-2 rounded-full text-sm font-semibold transition text-stone-700 hover:text-lason-brown">
+                2. Hạt Cà Phê Sơn La
+            </button>
+            <button onclick="switchPage('drinks')" data-nav="drinks" class="nav-btn px-4 py-2 rounded-full text-sm font-semibold transition text-stone-700 hover:text-lason-brown">
+                3. Menu Quán & Xe
+            </button>
+            <button onclick="switchPage('gear-map')" data-nav="gear-map" class="nav-btn px-4 py-2 rounded-full text-sm font-semibold transition text-stone-700 hover:text-lason-brown">
+                4. Thiết Bị & Bản Đồ Xe
+            </button>
+        </nav>
+
+        <!-- Cart Button -->
+        <div class="flex items-center gap-3">
+            <button onclick="toggleCart(true)" class="relative inline-flex items-center gap-2 bg-lason-brown hover:bg-lason-dark text-white px-4 py-2.5 rounded-full text-sm font-semibold transition shadow-sm">
+                <span>🛒 Giỏ hàng</span>
+                <span id="cartCount" class="bg-white text-lason-brown text-xs font-extrabold px-2 py-0.5 rounded-full">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <div class="flex md:hidden border-t border-stone-200 bg-white overflow-x-auto px-2 py-1.5 gap-1 justify-between">
+        <button onclick="switchPage('story')" data-nav="story" class="nav-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-lason-brown text-white whitespace-nowrap">1. Câu Chuyện</button>
+        <button onclick="switchPage('beans')" data-nav="beans" class="nav-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-stone-700 whitespace-nowrap">2. Hạt Rang</button>
+        <button onclick="switchPage('drinks')" data-nav="drinks" class="nav-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-stone-700 whitespace-nowrap">3. Đồ Uống</button>
+        <button onclick="switchPage('gear-map')" data-nav="gear-map" class="nav-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-stone-700 whitespace-nowrap">4. Thiết Bị & Bản Đồ</button>
+    </div>
+</header>
+
+<!-- =========================================================
+     TRANG 1: CÂU CHUYỆN THƯƠNG HIỆU (BÁC SĨ THÚ Y & CÀ PHÊ CHỮA LÀNH)
+     ========================================================= -->
+<main id="page-story" class="page-section active flex-1">
+    <!-- Hero Banner -->
+    <section class="relative overflow-hidden bg-lason-dark text-white py-16 lg:py-24">
+        <div class="absolute inset-0 opacity-25 bg-[radial-gradient(#D97706_1px,transparent_1px)] [background-size:24px_24px]"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-12 gap-10 items-center">
+            <div class="lg:col-span-7 space-y-6">
+                <div class="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide uppercase">
+                    🐾 Bác Sĩ Thú Y Rang Cà Phê • Mộc Châu, Sơn La
+                </div>
+                <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                    Từ Tình Yêu Động Vật Đến Tách Cà Phê <span class="text-amber-400 italic">"Chữa Lành"</span>
+                </h1>
+                <p class="text-stone-300 text-base sm:text-lg leading-relaxed max-w-2xl">
+                    Một hành trình Cà phê - Trà - Sữa của một người con sinh ra tại Sơn La. Mang sự chỉn chu, khoa học của một bác sĩ thú y và tình yêu thuần khiết với những người bạn bốn chân vào từng mẻ hạt Arabica Tây Bắc.
+                </p>
+                <p class="font-serif italic text-xl text-amber-300">
+                    "Uống là cười, ngủ là mơ — Chào mừng bạn đến với thế giới cà phê của Dr. Thắng Rang Cà!"
+                </p>
+                <div class="flex flex-wrap gap-4 pt-2">
+                    <button onclick="switchPage('beans')" class="bg-lason-brown hover:bg-amber-700 text-white px-7 py-3.5 rounded-full font-semibold shadow-lg transition">
+                        Khám Phá Bộ 3 Hạt: Ly • Kao • Bư →
+                    </button>
+                    <button onclick="switchPage('gear-map')" class="bg-white/10 hover:bg-white/20 border border-white/25 text-white px-6 py-3.5 rounded-full font-semibold transition">
+                        🚐 Xem Bản Đồ Xe Cà Phê Cuối Tuần
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card tóm tắt câu chuyện & Lịch trình -->
+            <div class="lg:col-span-5 bg-white/10 backdrop-blur-md border border-white/15 rounded-3xl p-6 sm:p-8 space-y-6">
+                <div class="flex items-center gap-4 border-b border-white/15 pb-4">
+                    <div class="w-14 h-14 rounded-2xl bg-lason-brown flex items-center justify-center font-serif font-bold text-2xl text-white shadow-inner">
+                        Ls'
+                    </div>
+                    <div>
+                        <h3 class="font-serif text-xl font-bold text-white">La Sơn Coffee Roastery</h3>
+                        <p class="text-xs text-amber-200">216 Hoàng Quốc Việt, P. Vân Sơn, Sơn La</p>
+                    </div>
+                </div>
+                <div class="space-y-3 text-sm text-stone-200 leading-relaxed">
+                    <p>🩺 <strong>Tư duy khoa học từ phòng khám:</strong> Theo dõi sát sao từng biểu đồ nhiệt độ, căn chỉnh từng giây trong lồng rang như cách chăm sóc một sự sống nhỏ.</p>
+                    <p>🐶🐱 <strong>Cảm hứng từ thú cưng:</strong> Mỗi túi cà phê mang tên một người bạn nhỏ — từ cô nàng <strong>Ly</strong> thanh sạch, chú cún <strong>Kao</strong> ngọt ngào đến hoàng thượng mèo <strong>Bư</strong> kiêu kỳ.</p>
+                </div>
+                <div class="bg-stone-900/70 rounded-2xl p-4 border border-amber-500/30">
+                    <div class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">📍 Điểm Hẹn Cà Phê Tuần Này</div>
+                    <ul class="text-xs space-y-2 text-stone-200">
+                        <li class="flex justify-between"><span>🏠 <strong>Tại Quán (Thứ 2 - CN):</strong></span> <span>216 Hoàng Quốc Việt, Vân Sơn</span></li>
+                        <li class="flex justify-between text-amber-300"><span>🚐 <strong>Thứ 7 (6h30 - 11h30):</strong></span> <span>Đồi Thông Bản Áng</span></li>
+                        <li class="flex justify-between text-amber-300"><span>🚐 <strong>Chủ Nhật (6h30 - 11h30):</strong></span> <span>Đồi Chè Trái Tim Mộc Châu</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Câu chuyện chi tiết của Bác sĩ thú y -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
+        <div class="grid md:grid-cols-2 gap-10 items-center bg-white p-8 sm:p-10 rounded-3xl shadow-sm border border-stone-200/80">
+            <div class="space-y-4">
+                <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">Câu Chuyện Thương Hiệu</span>
+                <h2 class="font-serif text-3xl font-bold text-lason-dark">Khi Người Cầm Ống Nghe Bệnh Bước Vào Xưởng Rang</h2>
+                <p class="text-stone-600 text-sm sm:text-base leading-relaxed">
+                    Người ta thường biết đến tôi với vai trò là một bác sĩ thú y – người hằng ngày chăm sóc, chữa trị và lắng nghe ngôn ngữ của những người bạn bốn chân. Công việc ấy dạy cho tôi sự kiên nhẫn, sự thấu hiểu và lòng trắc ẩn sâu sắc đối với mọi sự sống.
+                </p>
+                <p class="text-stone-600 text-sm sm:text-base leading-relaxed">
+                    Nhiều năm làm nghề y, tách cà phê mỗi sáng không chỉ giúp tôi tỉnh táo trước những ca đỡ đẻ hay phẫu thuật căng thẳng, mà dần trở thành một "người bạn đồng hành" xoa dịu tinh thần. Từ đó, <strong>La Sơn Coffee Roastery</strong> ra đời tại vùng đất Mộc Châu, Sơn La.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-4 bg-lason-cream p-6 rounded-2xl border border-stone-200">
+                <div class="flex gap-4 items-start">
+                    <span class="text-2xl">🔬</span>
+                    <div>
+                        <h4 class="font-bold text-lason-dark">1. Chăm chút như chăm sóc sự sống</h4>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-1">Tiếp cận hạt cà phê nhân xanh Sơn La bằng tư duy khoa học, kiểm soát biểu đồ nhiệt độ chuẩn xác để đánh thức hương hoa và vị ngọt tự nhiên.</p>
+                    </div>
+                </div>
+                <hr class="border-stone-200">
+                <div class="flex gap-4 items-start">
+                    <span class="text-2xl">🐾</span>
+                    <div>
+                        <h4 class="font-bold text-lason-dark">2. Cà phê của sự kết nối & chữa lành</h4>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-1">Ba phương pháp sơ chế kinh điển (Washed, Honey, Natural) được hóa thân thành 3 cá tính thú cưng: <strong>Ly Coffee</strong>, <strong>Kao Coffee</strong> và <strong>Bư Coffee</strong>.</p>
+                    </div>
+                </div>
+                <hr class="border-stone-200">
+                <div class="flex gap-4 items-start">
+                    <span class="text-2xl">🚐</span>
+                    <div>
+                        <h4 class="font-bold text-lason-dark">3. Quán nhỏ & Chuyến xe cuối tuần</h4>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-1">Ngoài không gian tại 216 Hoàng Quốc Việt (Vân Sơn), mỗi cuối tuần xe cà phê lưu động của La Sơn lại rong ruổi đến các điểm săn mây, đồi thông để pha cà phê nóng giữa thiên nhiên.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 Công đoạn sơ chế làm nên 3 dòng sản phẩm -->
+        <div class="space-y-8">
+            <div class="text-center max-w-2xl mx-auto">
+                <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">100% Arabica Sơn La Đặc Sản</span>
+                <h2 class="font-serif text-3xl font-bold mt-1">3 Phương Pháp Sơ Chế — 3 Cá Tính Hạt</h2>
+                <p class="text-sm text-stone-600 mt-2">Từ cùng những trái cà phê chín đỏ trên sườn đồi Sơn La, cách sơ chế khác nhau tạo nên những dải hương vị kỳ diệu.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block bg-sky-100 text-sky-800 text-xs font-bold px-3 py-1 rounded-full mb-3">1. Sơ chế Ướt (Washed)</span>
+                        <h3 class="font-serif text-xl font-bold text-lason-dark">Đại diện: LY COFFEE</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
+                            Xay bỏ vỏ và thịt quả ngay sau khi hái, ngâm ủ lên men để phân hủy lớp nhầy, rửa sạch với nước suối rồi phơi khô. Cho ra hạt cà phê có <strong>độ sạch cao, vị chua (acidity) sáng rõ và hương hoa trắng</strong> thanh tao.
+                        </p>
+                    </div>
+                    <button onclick="switchPage('beans')" class="mt-5 text-xs font-bold text-lason-brown hover:underline text-left">Đặt mua gói Ly Coffee →</button>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-3">2. Sơ chế Mật Ong (Honey)</span>
+                        <h3 class="font-serif text-xl font-bold text-lason-dark">Đại diện: KAO COFFEE</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
+                            Lấy cảm hứng từ sự dịu dàng của chú cún Kao. Xát bỏ vỏ ngoài nhưng giữ lại lớp nhầy ngọt (pectin) trên hạt khi phơi giàn. Tạo nên <strong>vị ngọt dịu như caramel, cân bằng hoàn hảo giữa độ chua trái cây và độ đậm</strong>.
+                        </p>
+                    </div>
+                    <button onclick="switchPage('beans')" class="mt-5 text-xs font-bold text-lason-brown hover:underline text-left">Đặt mua gói Kao Coffee →</button>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full mb-3">3. Sơ chế Khô (Natural)</span>
+                        <h3 class="font-serif text-xl font-bold text-lason-dark">Đại diện: BƯ COFFEE</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
+                            Kiêu kỳ và đậm đà như "hoàng thượng" Bư. Quả cà phê chín mọng được phơi nguyên quả dưới nắng Tây Bắc 25–30 ngày. Giữ trọn <strong>thân vị (body) dày dặn, vị ngọt đậm sâu và nốt hương trái cây chín nhiệt đới</strong>.
+                        </p>
+                    </div>
+                    <button onclick="switchPage('beans')" class="mt-5 text-xs font-bold text-lason-brown hover:underline text-left">Đặt mua gói Bư Coffee →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- =========================================================
+     TRANG 2: HẠT CÀ PHÊ RANG SẴN (CÓ BÁN ONLINE - GUEST CHECKOUT)
+     ========================================================= -->
+<main id="page-beans" class="page-section flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">Xưởng Rang La Sơn • 100% Arabica Sơn La</span>
+            <h2 class="font-serif text-3xl sm:text-4xl font-bold mt-1">Gói Cà Phê Hạt Rang Mộc Đặc Sản</h2>
+            <p class="text-sm text-stone-600 mt-1">Chọn Nguyên hạt hoặc Xay sẵn miễn phí theo dụng cụ pha của bạn. Không cần đăng nhập tài khoản.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 text-xs text-amber-900">
+            🎁 <strong>Ưu đãi cuối tuần:</strong> Chọn nhận hàng tại <strong>Xe Lưu Động La Sơn</strong> được tặng ngay 1 ly cà phê pha mới!
+        </div>
+    </div>
+
+    <div id="beansGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-7"></div>
+</main>
+
+<!-- =========================================================
+     TRANG 3: MENU ĐỒ UỐNG (CHỈ GIỚI THIỆU - KHÔNG BÁN ONLINE)
+     ========================================================= -->
+<main id="page-drinks" class="page-section flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+    <div class="bg-lason-dark text-white rounded-3xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div class="space-y-2 max-w-2xl">
+        <span class="inline-block bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-3 py-1 rounded-full">
+          ☕ MENU TRẢI NGHIỆM TRỰC TIẾP (KHÔNG BÁN GIAO ONLINE)
+        </span>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold">Thưởng Thức Tách Cà Phê Nóng Tại Quán & Trên Xe Lưu Động</h2>
+            <p class="text-stone-300 text-xs sm:text-sm leading-relaxed">
+                Để giữ trọn lớp crema và tầng hương tinh tế nhất của hạt Arabica Sơn La, các món đồ uống pha chế chỉ phục vụ trực tiếp tại <strong>Quán (216 Hoàng Quốc Việt, Vân Sơn)</strong> và trên <strong>Xe Cà Phê Lưu Động cuối tuần</strong>.
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+            <button onclick="filterDrinks('all')" id="drinkFilter-all" class="drink-filter-btn bg-lason-brown text-white px-4 py-2 rounded-full text-xs font-bold">Tất cả đồ uống</button>
+            <button onclick="filterDrinks('truck')" id="drinkFilter-truck" class="drink-filter-btn bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold">🚐 Có trên Xe Lưu Động</button>
+            <button onclick="filterDrinks('shop')" id="drinkFilter-shop" class="drink-filter-btn bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold">🏠 Chỉ phục vụ tại Quán</button>
+        </div>
+    </div>
+
+    <div id="drinksGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</main>
+
+<!-- =========================================================
+     TRANG 4: THIẾT BỊ PHA CÀ PHÊ + BẢN ĐỒ XE LƯU ĐỘNG + LIÊN HỆ
+     ========================================================= -->
+<main id="page-gear-map" class="page-section flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-16">
+    <!-- Phần 1: Bản đồ định vị Quán & Xe Cà Phê Lưu Động Cuối Tuần -->
+    <section class="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">Bản Đồ Tương Tác Mộc Châu - Sơn La</span>
+                <h2 class="font-serif text-2xl sm:text-3xl font-bold mt-1">Cuối Tuần Này Xe Cà Phê La Sơn Đỗ Ở Đâu?</h2>
+                <p class="text-sm text-stone-600">Bấm vào từng địa điểm bên dưới để xem vị trí chính xác trên bản đồ và khung giờ hoạt động.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="selectMapSpot(0)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-stone-100 hover:bg-lason-brown hover:text-white transition">🏠 Quán Cố Định (Vân Sơn)</button>
+                <button onclick="selectMapSpot(1)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 hover:bg-lason-brown hover:text-white transition">🚐 Thứ 7: Đồi Thông Bản Áng</button>
+                <button onclick="selectMapSpot(2)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 hover:bg-lason-brown hover:text-white transition">🚐 Chủ Nhật: Đồi Chè Trái Tim</button>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8">
+                <div id="map" class="border border-stone-200 shadow-inner"></div>
+            </div>
+            <div class="lg:col-span-4 space-y-4" id="locationCards"></div>
+        </div>
+    </section>
+
+    <!-- Phần 2: Thiết bị pha cà phê thủ công (Có bán Online) -->
+    <section>
+        <div class="mb-6">
+            <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">Dụng Cụ Pha Chế Tại Nhà (Có Bán Online)</span>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold mt-1">Thiết Bị Pha Cà Phê Thủ Công</h2>
+            <p class="text-sm text-stone-600">Được Dr. Thắng tuyển chọn để bạn dễ dàng tự pha Ly, Kao, Bư Coffee chuẩn vị ngay tại nhà.</p>
+        </div>
+        <div id="gearGrid" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+    </section>
+
+    <!-- Phần 3: Thông tin liên hệ thực tế của La Sơn Coffee Roastery -->
+    <section class="grid md:grid-cols-12 gap-8 bg-lason-sand/70 rounded-3xl p-6 sm:p-10 border border-stone-200">
+        <div class="md:col-span-6 space-y-4">
+            <span class="text-xs font-bold uppercase tracking-widest text-lason-brown">Kết Nối Với La Sơn Coffee Roastery</span>
+            <h3 class="font-serif text-2xl sm:text-3xl font-bold">Thông Tin Liên Hệ Cửa Hàng</h3>
+            <p class="text-sm text-stone-600">Bạn quan tâm đến Cà Phê Đặc Sản Sơn La, muốn đặt sỉ cho quán hoặc hỏi lịch đỗ xe lưu động? Liên hệ trực tiếp với Dr. Thắng:</p>
+            <div class="space-y-3 text-sm pt-2">
+                <p>📍 <strong>Địa chỉ xưởng & quán:</strong> 216 Hoàng Quốc Việt, Phường Vân Sơn, Tỉnh Sơn La</p>
+                <p>📞 <strong>Hotline / Zalo Đặt Hàng:</strong> <a href="https://zalo.me/0386423993" target="_blank" class="text-lason-brown font-bold underline">0386 423 993</a></p>
+                <p>✉️ <strong>Email:</strong> <a href="mailto:lasonroastery@gmail.com" class="underline">lasonroastery@gmail.com</a></p>
+                <p>🎵 <strong>TikTok:</strong> <a href="https://www.tiktok.com/@drthangrangca" target="_blank" class="text-lason-brown font-semibold underline">@drthangrangca (DrThắng Rang Cà)</a> • <span>@lasoncofferoastery</span></p>
+                <p>📘 <strong>Facebook:</strong> <a href="https://www.facebook.com/lasoncofferoastery" target="_blank" class="text-lason-brown font-semibold underline">facebook.com/lasoncofferoastery</a></p>
+            </div>
+        </div>
+
+        <form onsubmit="submitContactForm(event)" class="md:col-span-6 bg-white p-6 rounded-2xl border border-stone-200 space-y-4 shadow-sm">
+            <h4 class="font-serif text-lg font-bold">Gửi Lời Nhắn / Đặt Lịch Giao Lưu Cùng Dr. Thắng</h4>
+            <div class="grid sm:grid-cols-2 gap-3">
+                <input type="text" required placeholder="Họ và tên của bạn *" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-lason-brown">
+                <input type="tel" required placeholder="Số điện thoại / Zalo *" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-lason-brown">
+            </div>
+            <textarea rows="3" required placeholder="Nội dung lời nhắn (Tư vấn hạt cà phê Sơn La, hỏi vị trí xe cà phê cuối tuần...)" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-lason-brown"></textarea>
+            <button type="submit" class="w-full bg-lason-brown hover:bg-lason-dark text-white font-semibold py-3 rounded-xl text-sm transition">
+                Gửi Thông Tin Liên Hệ
+            </button>
+        </form>
+    </section>
+</main>
+
+<!-- =========================================================
+     DRAWER GIỎ HÀNG & FORM MUA HÀNG KHÔNG CẦN ĐĂNG NHẬP
+     ========================================================= -->
+<div id="cartModal" class="fixed inset-0 z-50 hidden">
+    <div onclick="toggleCart(false)" class="absolute inset-0 bg-black/50 backdrop-blur-xs"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-full max-w-lg bg-white shadow-2xl flex flex-col">
+        <div class="p-5 bg-lason-brown text-white flex items-center justify-between">
+            <div>
+                <h3 class="font-serif text-xl font-bold">Giỏ Hàng & Đặt Mua Nhanh</h3>
+                <p class="text-xs text-amber-100">Không cần đăng nhập • Xác nhận đơn qua SĐT/Zalo</p>
+            </div>
+            <button onclick="toggleCart(false)" class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+            <div id="cartItemsList" class="space-y-3"></div>
+
+            <form id="checkoutForm" onsubmit="placeGuestOrder(event)" class="space-y-4 border-t border-stone-200 pt-5">
+                <h4 class="font-serif font-bold text-base text-lason-dark">Thông Tin Người Nhận Hàng</h4>
+                <div class="grid sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold text-stone-600">Họ và tên *</label>
+                        <input id="custName" type="text" required placeholder="Nguyễn Văn A" class="mt-1 w-full px-3 py-2 rounded-xl border border-stone-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-stone-600">Số điện thoại / Zalo *</label>
+                        <input id="custPhone" type="tel" required placeholder="09xx xxx xxx" class="mt-1 w-full px-3 py-2 rounded-xl border border-stone-300 text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-stone-600 block mb-1.5">Hình thức nhận hàng *</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer bg-stone-50">
+                            <input type="radio" name="deliveryMode" value="Giao tận nhà (COD toàn quốc)" checked onchange="updateCheckoutTotal()">
+                            <span>🚚 Giao tận nơi toàn quốc</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer bg-amber-50 border-amber-300">
+                            <input type="radio" name="deliveryMode" value="Nhận tại Quán / Xe Lưu Động Cuối Tuần" onchange="updateCheckoutTotal()">
+                            <span>🚐 Nhận tại Quán / Xe Lưu Động (Tặng 1 ly cafe)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-stone-600">Địa chỉ nhận hàng hoặc Điểm hẹn Xe Lưu Động *</label>
+                    <input id="custAddress" type="text" required placeholder="Số nhà, đường, tỉnh thành (Hoặc ghi: Nhận sáng Thứ 7 tại Đồi Thông)" class="mt-1 w-full px-3 py-2 rounded-xl border border-stone-300 text-sm">
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-stone-600">Ghi chú thêm cho Dr. Thắng</label>
+                    <input id="custNote" type="text" placeholder="Ví dụ: Tư vấn thêm cách pha V60..." class="mt-1 w-full px-3 py-2 rounded-xl border border-stone-300 text-sm">
+                </div>
+
+                <div class="bg-lason-cream p-4 rounded-2xl space-y-1.5 text-sm border border-stone-200">
+                    <div class="flex justify-between text-stone-600"><span>Tạm tính:</span><span id="subTotalText">0đ</span></div>
+                    <div class="flex justify-between text-stone-600"><span>Phí vận chuyển:</span><span id="shipFeeText">0đ</span></div>
+                    <div class="flex justify-between font-bold text-base text-lason-brown pt-1 border-t border-stone-200">
+                        <span>Tổng thanh toán:</span><span id="grandTotalText">0đ</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-lason-brown hover:bg-lason-dark text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition">
+                    XÁC NHẬN ĐẶT HÀNG (KHÔNG CẦN ĐĂNG NHẬP)
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="bg-lason-dark text-stone-300 py-8 px-4 text-xs border-t border-stone-800 mt-auto">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-lason-brown flex items-center justify-center font-serif font-bold text-white">Ls'</div>
+            <span><strong>La Sơn Coffee Roastery</strong> — Uống là cười, ngủ là mơ • Bác sĩ thú y rang cà phê tại Sơn La</span>
+        </div>
+        <div>📍 216 Hoàng Quốc Việt, P. Vân Sơn, Sơn La | 📞 0386 423 993 | ✉️ lasonroastery@gmail.com</div>
+    </div>
+</footer>
+
+<!-- =========================================================
+     JAVASCRIPT: DỮ LIỆU THỰC TẾ LA SƠN COFFEE & LOGIC BẢN ĐỒ
+     ========================================================= -->
+<script>
+    const beansData = [
+        {
+            id: 'ly-coffee',
+            name: 'LY COFFEE — Arabica Sơn La Washed',
+            badge: '1. Sơ chế Ướt (Washed)',
+            roast: 'Light Roast (Rang sáng)',
+            origin: '100% Arabica Sơn La',
+            price250: 155000,
+            price500: 290000,
+            story: 'Phương pháp sơ chế ướt tạo ra hạt cà phê có độ sạch cao nhất, vị chua (acidity) sáng rõ và hương hoa trắng thanh khiết của núi rừng Tây Bắc. Rất hợp cho Pour Over, Espresso hiện đại và Cold Brew.',
+            notes: ['Hương hoa trắng', 'Chua thanh sáng', 'Hậu ngọt sạch'],
+            image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80'
+        },
+        {
+            id: 'kao-coffee',
+            name: 'KAO COFFEE — Arabica Sơn La Honey',
+            badge: '2. Sơ chế Mật Ong (Honey)',
+            roast: 'Light Roast (Rang sáng)',
+            origin: '100% Arabica Sơn La',
+            price250: 165000,
+            price500: 310000,
+            story: 'Lấy cảm hứng từ sự dịu dàng của chú cún Kao. Giữ lại lớp nhầy pectin ngọt tự nhiên khi phơi trên giàn, mang đến vị ngọt dịu như caramel, cân bằng tuyệt vời giữa hương hoa, vị chua trái cây và độ đậm.',
+            notes: ['Ngọt Caramel', 'Hương hoa rừng', 'Trái cây tươi'],
+            image: 'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?auto=format&fit=crop&w=800&q=80'
+        },
+        {
+            id: 'bu-coffee',
+            name: 'BƯ COFFEE — Arabica Sơn La Natural',
+            badge: '3. Sơ chế Khô (Natural)',
+            roast: 'Light / Light+ (Rang vừa)',
+            origin: '100% Arabica Sơn La',
+            price250: 175000,
+            price500: 330000,
+            story: 'Mang nét kiêu kỳ của "hoàng thượng" mèo Bư. Quả cà phê chín mọng được phơi nguyên quả dưới nắng mặt trời 25–30 ngày, giữ trọn thân vị (body) dày dặn, vị ngọt đậm và nốt hương trái cây chín nồng nàn.',
+            notes: ['Trái cây chín', 'Body dày dặn', 'Ngọt đậm sâu'],
+            image: 'https://images.unsplash.com/photo-1611854779393-1b2da9d400fe?auto=format&fit=crop&w=800&q=80'
+        },
+        {
+            id: 'lason-phin-blend',
+            name: 'LA SƠN BLEND — Phin & Sữa Đá Tây Bắc',
+            badge: 'Phối trộn truyền thống & hiện đại',
+            roast: 'Medium Roast (Rang vừa)',
+            origin: 'Arabica Sơn La & Fine Robusta',
+            price250: 135000,
+            price500: 255000,
+            story: 'Sự kết hợp giữa hương thơm quyến rũ của Arabica Sơn La và độ đậm đà sô-cô-la của Fine Robusta, thiết kế riêng cho người yêu cà phê Phin và Cà phê sữa đá mỗi sáng.',
+            notes: ['Sô-cô-la đen', 'Hạt dẻ nướng', 'Đậm đà hậu ngọt'],
+            image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80'
+        }
+    ];
+
+    const drinksData = [
+        {
+            name: 'V60 Pour Over — Hạt Ly / Kao / Bư',
+            price: '45.000đ',
+            availableAt: 'truck',
+            badgeText: '🚐 Có tại Quán & Xe Lưu Động',
+            baseBean: 'Tùy chọn hạt Ly (Washed), Kao (Honey) hoặc Bư (Natural)',
+            desc: 'Chiết xuất thủ công qua giấy lọc giúp bóc tách trọn vẹn hương hoa, vị chua thanh trái cây và hậu vị ngọt sâu của hạt Arabica Sơn La.',
+            image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=700&q=80'
+        },
+        {
+            name: 'Cold Brew Sơn La Ủ Lạnh 18 Giờ',
+            price: '45.000đ',
+            availableAt: 'truck',
+            badgeText: '🚐 Có tại Quán & Xe Lưu Động',
+            baseBean: 'Nền hạt Bư Coffee (Natural) hương trái cây chín',
+            desc: 'Ủ lạnh suốt 18 giờ từ hạt Bư Coffee sơ chế tự nhiên, mang lại cảm giác sảng khoái, thơm lừng hương quả mọng nhiệt đới.',
+            image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&w=700&q=80'
+        },
+        {
+            name: 'Cà Phê Sữa Tươi Mộc Châu ("Uống Là Cười")',
+            price: '35.000đ',
+            availableAt: 'truck',
+            badgeText: '🚐 Có tại Quán & Xe Lưu Động',
+            baseBean: 'Nền Espresso Kao Coffee & Sữa tươi Mộc Châu',
+            desc: 'Sự giao thoa ngọt ngào giữa hạt Arabica Honey Sơn La và dòng sữa tươi béo thơm đặc trưng của cao nguyên Mộc Châu.',
+            image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=700&q=80'
+        },
+        {
+            name: 'Trà Ô Long Sữa Thảo Nguyên',
+            price: '38.000đ',
+            availableAt: 'truck',
+            badgeText: '🚐 Có tại Quán & Xe Lưu Động',
+            baseBean: 'Trà Ô Long Mộc Châu ủ đậm vị',
+            desc: 'Một phần trong "Hành trình Cafe - Trà - Sữa" của La Sơn: trà Ô Long vùng cao chát dịu hòa quyện cùng sữa thơm dịu nhẹ.',
+            image: 'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=700&q=80'
+        },
+        {
+            name: 'Combo Thử Nếm 3 Sơ Chế (Tasting Flight)',
+            price: '79.000đ',
+            availableAt: 'shop',
+            badgeText: '🏠 Độc quyền tại Quán 216 Hoàng Quốc Việt',
+            baseBean: 'Trọn bộ 3 ly nhỏ: Ly (Washed) + Kao (Honey) + Bư (Natural)',
+            desc: 'Trải nghiệm so sánh trực tiếp 3 phương pháp sơ chế cà phê Sơn La cùng lời thuyết minh trực tiếp từ Dr. Thắng tại quầy bar.',
+            image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=700&q=80'
+        },
+        {
+            name: 'Espresso Tonic Mận Đỏ Tây Bắc',
+            price: '48.000đ',
+            availableAt: 'shop',
+            badgeText: '🏠 Độc quyền tại Quán 216 Hoàng Quốc Việt',
+            baseBean: 'Double Shot Ly Coffee + Syrup Mận Mộc Châu',
+            desc: 'Tầng vị chua thanh của mận chín Mộc Châu kết hợp cùng lớp crema Espresso sáng vị tạo nên thức uống "chữa lành" đầy năng lượng.',
+            image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=700&q=80'
+        }
+    ];
+
+    const gearData = [
+        { id: 'gear-v60', name: 'Phễu Gốm V60 Kèm Giấy Lọc (Cỡ 02)', price: 185000, desc: 'Dụng cụ lý tưởng nhất để pha hạt Ly Coffee & Kao Coffee rang sáng.', image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80' },
+        { id: 'gear-kettle', name: 'Ấm Cổ Ngỗng Kiểm Soát Dòng Nước 600ml', price: 320000, desc: 'Thép không gỉ sơn tĩnh điện giúp rót vòng tròn ổn định khi pha Pour Over.', image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=600&q=80' },
+        { id: 'gear-grinder', name: 'Cối Xay Cà Phê Thủ Công Lưỡi Thép CNC', price: 590000, desc: 'Tuỳ chỉnh 24 nấc độ mịn từ Espresso, Phin đến V60 và Cold Brew.', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80' },
+        { id: 'gear-phin', name: 'Phin Nhôm Anodized Khắc Logo Ls\'', price: 95000, desc: 'Phin nhôm cao cấp giữ nhiệt đều, chiết xuất đậm đà không bám mùi kim loại.', image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80' }
+    ];
+
+    const mapSpots = [
+        {
+            title: '🏠 Quán & Xưởng Rang Cố Định La Sơn',
+            time: 'Thứ 2 – Chủ Nhật (07:00 – 21:30)',
+            address: '216 Hoàng Quốc Việt, Phường Vân Sơn, Mộc Châu, Sơn La',
+            coords: [20.8445, 104.6412],
+            note: 'Không gian thưởng thức trọn bộ Ly - Kao - Bư Coffee và giao lưu cùng Dr. Thắng.'
+        },
+        {
+            title: '🚐 Xe Lưu Động — Sáng Thứ Bảy',
+            time: 'Thứ 7 tuần này (06:30 – 11:30)',
+            address: 'Cổng Rừng Thông Bản Áng, Đông Sang, Mộc Châu, Sơn La',
+            coords: [20.8242, 104.6615],
+            note: 'Có ghế xếp camping dưới tán thông, phục vụ Pour Over nóng & Cold Brew.'
+        },
+        {
+            title: '🚐 Xe Lưu Động — Sáng Chủ Nhật',
+            time: 'Chủ Nhật tuần này (06:30 – 11:30)',
+            address: 'Đồi Chè Trái Tim (Tiểu khu Nông Trường), Mộc Châu, Sơn La',
+            coords: [20.8715, 104.6880],
+            note: 'Điểm săn sương sớm và thưởng thức Cà phê sữa tươi Mộc Châu nóng hổi.'
+        }
+    ];
+
+    let cart = [];
+    let mapInstance = null;
+    let mapMarkers = [];
+
+    function formatVND(num) {
+        return num.toLocaleString('vi-VN') + 'đ';
+    }
+
+    function renderBeans() {
+        const container = document.getElementById('beansGrid');
+        container.innerHTML = beansData.map(b => `
+        <div class="bg-white rounded-3xl overflow-hidden border border-stone-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="relative h-56 overflow-hidden bg-stone-100">
+              <img src="${b.image}" alt="${b.name}" class="w-full h-full object-cover">
+              <span class="absolute top-3 left-3 bg-lason-brown text-white text-xs font-bold px-3 py-1 rounded-full shadow">${b.badge}</span>
+              <span class="absolute bottom-3 right-3 bg-black/75 text-amber-200 text-xs font-semibold px-2.5 py-1 rounded-lg">${b.roast}</span>
+            </div>
+            <div class="p-6 space-y-3">
+              <div class="text-xs font-semibold text-stone-500">${b.origin}</div>
+              <h3 class="font-serif text-xl font-bold text-lason-dark">${b.name}</h3>
+              <p class="text-xs sm:text-sm text-stone-600 leading-relaxed">${b.story}</p>
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                ${b.notes.map(n => `<span class="text-xs bg-lason-cream border border-stone-200 px-2.5 py-1 rounded-full font-medium">✨ ${n}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6 pt-0 space-y-3 border-t border-stone-100 mt-2">
+            <div class="grid grid-cols-2 gap-2 pt-3">
+              <div>
+                <label class="text-[11px] font-bold text-stone-500 uppercase">Khối lượng</label>
+                <select id="weight-${b.id}" class="mt-1 w-full text-xs border border-stone-300 rounded-xl px-2.5 py-2 bg-stone-50 font-semibold">
+                  <option value="250g" data-price="${b.price250}">Túi 250g — ${formatVND(b.price250)}</option>
+                  <option value="500g" data-price="${b.price500}">Túi 500g — ${formatVND(b.price500)}</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-stone-500 uppercase">Quy cách hạt</label>
+                <select id="grind-${b.id}" class="mt-1 w-full text-xs border border-stone-300 rounded-xl px-2.5 py-2 bg-stone-50 font-semibold">
+                  <option value="Nguyên hạt">Để Nguyên Hạt</option>
+                  <option value="Xay Pour Over / V60">Xay Pour Over / V60</option>
+                  <option value="Xay Pha Phin">Xay Pha Phin</option>
+                  <option value="Xay Máy Espresso">Xay Máy Espresso</option>
+                  <option value="Xay Cold Brew">Xay Ủ Cold Brew</option>
+                </select>
+              </div>
+            </div>
+            <button onclick="addBeanToCart('${b.id}')" class="w-full bg-lason-brown hover:bg-lason-dark text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow-sm">
+              + Thêm Vào Giỏ Hàng
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDrinks(filter = 'all') {
+        const container = document.getElementById('drinksGrid');
+        const filtered = filter === 'all' ? drinksData : drinksData.filter(d => d.availableAt === filter);
+        container.innerHTML = filtered.map(d => `
+        <div class="bg-white rounded-3xl overflow-hidden border border-stone-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="relative h-48 overflow-hidden">
+              <img src="${d.image}" alt="${d.name}" class="w-full h-full object-cover">
+              <span class="absolute top-3 left-3 bg-stone-900/85 text-amber-300 text-xs font-bold px-3 py-1 rounded-full">${d.badgeText}</span>
+            </div>
+            <div class="p-5 space-y-2">
+              <div class="flex justify-between items-start gap-2">
+                <h3 class="font-serif text-lg font-bold text-lason-dark">${d.name}</h3>
+                <span class="font-bold text-lason-brown shrink-0">${d.price}</span>
+              </div>
+              <p class="text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg inline-block">Hạt nền: ${d.baseBean}</p>
+              <p class="text-xs sm:text-sm text-stone-600 leading-relaxed">${d.desc}</p>
+            </div>
+          </div>
+          <div class="px-5 pb-5 pt-2">
+            <button onclick="switchPage('gear-map')" class="w-full border border-stone-300 hover:border-lason-brown text-stone-700 hover:text-lason-brown font-semibold py-2 rounded-xl text-xs transition">
+              📍 Xem vị trí Quán & Xe Lưu Động để thưởng thức
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterDrinks(type) {
+        document.querySelectorAll('.drink-filter-btn').forEach(btn => {
+            btn.className = 'drink-filter-btn bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-bold';
+        });
+        document.getElementById('drinkFilter-' + type).className = 'drink-filter-btn bg-lason-brown text-white px-4 py-2 rounded-full text-xs font-bold';
+        renderDrinks(type);
+    }
+
+    function renderGear() {
+        const container = document.getElementById('gearGrid');
+        container.innerHTML = gearData.map(g => `
+        <div class="bg-white rounded-2xl overflow-hidden border border-stone-200 shadow-sm flex flex-col justify-between p-4">
+          <div>
+            <img src="${g.image}" alt="${g.name}" class="w-full h-40 object-cover rounded-xl mb-3">
+            <h4 class="font-serif font-bold text-base text-lason-dark">${g.name}</h4>
+            <p class="text-xs text-stone-600 mt-1">${g.desc}</p>
+          </div>
+          <div class="pt-4 mt-3 border-t border-stone-100 flex items-center justify-between">
+            <span class="font-bold text-lason-brown text-sm">${formatVND(g.price)}</span>
+            <button onclick="addGearToCart('${g.id}')" class="bg-stone-900 hover:bg-lason-brown text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
+              + Chọn mua
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function initMap() {
+        if (mapInstance) {
+            mapInstance.invalidateSize();
+            return;
+        }
+        mapInstance = L.map('map').setView(mapSpots[0].coords, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap • La Sơn Coffee Roastery'
+        }).addTo(mapInstance);
+
+        mapSpots.forEach((spot) => {
+            const marker = L.marker(spot.coords).addTo(mapInstance)
+                .bindPopup(`<strong>${spot.title}</strong><br>${spot.time}<br><em>${spot.address}</em>`);
+            mapMarkers.push(marker);
+        });
+
+        const cardsContainer = document.getElementById('locationCards');
+        cardsContainer.innerHTML = mapSpots.map((s, idx) => `
+        <div onclick="selectMapSpot(${idx})" class="cursor-pointer p-4 rounded-2xl border border-stone-200 hover:border-lason-brown bg-lason-cream/60 transition space-y-1">
+          <div class="font-bold text-sm text-lason-dark">${s.title}</div>
+          <div class="text-xs font-semibold text-lason-brown">${s.time}</div>
+          <div class="text-xs text-stone-600">${s.address}</div>
+          <div class="text-[11px] text-stone-500 italic pt-1">${s.note}</div>
+        </div>
+      `).join('');
+
+        mapMarkers[0].openPopup();
+    }
+
+    function selectMapSpot(index) {
+        if (!mapInstance) initMap();
+        const spot = mapSpots[index];
+        mapInstance.setView(spot.coords, 15, { animate: true });
+        mapMarkers[index].openPopup();
+    }
+
+    function focusTruckMap() {
+        initMap();
+        selectMapSpot(1);
+    }
+
+    function switchPage(pageId) {
+        document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            if (btn.dataset.nav === pageId) {
+                btn.classList.add('bg-lason-brown', 'text-white');
+                btn.classList.remove('text-stone-700');
+            } else {
+                btn.classList.remove('bg-lason-brown', 'text-white');
+                btn.classList.add('text-stone-700');
+            }
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (pageId === 'gear-map') {
+            setTimeout(initMap, 150);
+        }
+    }
+
+    function addBeanToCart(beanId) {
+        const bean = beansData.find(b => b.id === beanId);
+        const weightSel = document.getElementById(`weight-${beanId}`);
+        const grindSel = document.getElementById(`grind-${beanId}`);
+        const weight = weightSel.value;
+        const price = Number(weightSel.selectedOptions[0].dataset.price);
+        const grind = grindSel.value;
+
+        const cartKey = `${beanId}-${weight}-${grind}`;
+        const existing = cart.find(i => i.key === cartKey);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({
+                key: cartKey,
+                name: bean.name,
+                variant: `${weight} • ${grind}`,
+                price,
+                qty: 1
+            });
+        }
+        updateCartUI();
+        toggleCart(true);
+    }
+
+    function addGearToCart(gearId) {
+        const gear = gearData.find(g => g.id === gearId);
+        const existing = cart.find(i => i.key === gearId);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({
+                key: gearId,
+                name: gear.name,
+                variant: 'Dụng cụ pha chế',
+                price: gear.price,
+                qty: 1
+            });
+        }
+        updateCartUI();
+        toggleCart(true);
+    }
+
+    function changeQty(key, delta) {
+        const item = cart.find(i => i.key === key);
+        if (!item) return;
+        item.qty += delta;
+        if (item.qty <= 0) {
+            cart = cart.filter(i => i.key !== key);
+        }
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        const totalCount = cart.reduce((sum, i) => sum + i.qty, 0);
+        document.getElementById('cartCount').textContent = totalCount;
+
+        const listEl = document.getElementById('cartItemsList');
+        if (cart.length === 0) {
+            listEl.innerHTML = `<div class="text-center py-8 text-stone-400 text-sm">Giỏ hàng của bạn đang trống. Hãy chọn một gói Ly, Kao hoặc Bư Coffee nhé!</div>`;
+        } else {
+            listEl.innerHTML = cart.map(item => `
+          <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200">
+            <div>
+              <div class="font-bold text-xs sm:text-sm text-lason-dark">${item.name}</div>
+              <div class="text-xs text-stone-500">${item.variant} — <strong class="text-lason-brown">${formatVND(item.price)}</strong></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="changeQty('${item.key}', -1)" class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-xs">-</button>
+              <span class="text-xs font-bold w-5 text-center">${item.qty}</span>
+              <button type="button" onclick="changeQty('${item.key}', 1)" class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-xs">+</button>
+            </div>
+          </div>
+        `).join('');
+        }
+        updateCheckoutTotal();
+    }
+
+    function updateCheckoutTotal() {
+        const subTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+        const mode = document.querySelector('input[name="deliveryMode"]:checked')?.value || '';
+        const isPickup = mode.includes('Nhận tại Quán');
+        const shipFee = (subTotal === 0 || isPickup || subTotal >= 500000) ? 0 : 25000;
+
+        document.getElementById('subTotalText').textContent = formatVND(subTotal);
+        document.getElementById('shipFeeText').textContent = shipFee === 0 ? 'Miễn phí' : formatVND(shipFee);
+        document.getElementById('grandTotalText').textContent = formatVND(subTotal + shipFee);
+    }
+
+    function toggleCart(show) {
+        const modal = document.getElementById('cartModal');
+        if (show) modal.classList.remove('hidden');
+        else modal.classList.add('hidden');
+    }
+
+    function placeGuestOrder(e) {
+        e.preventDefault();
+        if (cart.length === 0) {
+            alert('Vui lòng chọn ít nhất 1 sản phẩm cà phê hạt hoặc dụng cụ trước khi đặt hàng!');
+            return;
+        }
+        const name = document.getElementById('custName').value;
+        const phone = document.getElementById('custPhone').value;
+        const address = document.getElementById('custAddress').value;
+        const mode = document.querySelector('input[name="deliveryMode"]:checked').value;
+        const total = document.getElementById('grandTotalText').textContent;
+
+        alert(`🎉 ĐẶT HÀNG THÀNH CÔNG TẠI LA SƠN COFFEE ROASTERY!\n\n• Khách hàng: ${name} (${phone})\n• Hình thức: ${mode}\n• Địa chỉ/Điểm nhận: ${address}\n• Tổng thanh toán: ${total}\n\nDr. Thắng sẽ liên hệ qua Zalo/SĐT ${phone} để xác nhận mẻ rang mới nhất cho bạn!`);
+        cart = [];
+        updateCartUI();
+        e.target.reset();
+        toggleCart(false);
+    }
+
+    function submitContactForm(e) {
+        e.preventDefault();
+        alert('Cảm ơn bạn đã nhắn tin cho La Sơn Coffee Roastery! Dr. Thắng sẽ phản hồi qua SĐT/Zalo của bạn sớm nhất.');
+        e.target.reset();
+    }
+
+    renderBeans();
+    renderDrinks();
+    renderGear();
+    updateCartUI();
+</script>
+</body>
+</html>

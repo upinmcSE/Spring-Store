@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-sys-user
+      author: thanh.dt
+      comment: Create tb_sys_user
+      changes:
+        - createTable:
+            tableName: tb_sys_user
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_sys_user
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(256)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_sys_user_username
+              - column:
+                  name: password
+                  type: VARCHAR(256)
+              - column:
+                  name: name
+                  type: VARCHAR(256)
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(128)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: last_modified_by
+                  type: VARCHAR(128)
+              - column:
+                  name: last_modified_at
+                  type: TIMESTAMP WITH TIME ZONE
+      rollback:
+        - dropTable:
+            tableName: sys_user
